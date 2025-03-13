@@ -483,6 +483,7 @@ const CourseContent: React.FC = () => {
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [videoName, setVideoName] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<number | null>(null);
 
   // Define the function to handle document input changes
   const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1043,8 +1044,12 @@ const CourseContent: React.FC = () => {
               </button>
               <button 
                 onClick={() => {
-                  handleDeleteDocument(documentToDelete!);
-                  setShowDeleteModal(false);
+                  if (documentToDelete !== null) {
+                    handleDeleteDocument(documentToDelete);
+                    setShowDeleteModal(false);
+                  } else {
+                    toast.error('No document selected for deletion');
+                  }
                 }} 
                 className="py-2 px-4 border border-transparent shadow-sm text-sm rounded-md text-white bg-red-600 hover:bg-red-700"
               >
@@ -1462,7 +1467,10 @@ const CourseContent: React.FC = () => {
                                 </a>
                                 {isInstructor && (
                                   <button
-                                    onClick={() => handleDeleteDocument(index)}
+                                    onClick={() => {
+                                      setDocumentToDelete(index);
+                                      setShowDeleteModal(true);
+                                    }}
                                         className="text-red-500 hover:text-red-700 p-2 bg-white rounded-lg border border-gray-200 hover:bg-red-50 transition-colors"
                                     title="Supprimer le document"
                                   >
