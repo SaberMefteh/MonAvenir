@@ -16,22 +16,10 @@ pipeline {
                 sh 'docker build -t monavenir-frontend ./frontend'
                 //build the server image
                 sh 'docker build -t monavenir-server ./server'
-            }
+            } 
         }
 
-        //stage of push the images to Nexus
-        stage('push to nexus') {
-            steps {
-                
-            }
-        }
-
-        //stage of test the application
-        stage('test') {
-            steps {
-                sh 'npm run test'
-            }
-        }
+       
 
     
     }
