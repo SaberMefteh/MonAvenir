@@ -10,6 +10,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { fixResourceUrl } from '../utils/imageUtils';
 import axios from 'axios';
+import { AxiosRequestConfig } from 'axios';
 
 // Add custom scrollbar styles
 const scrollbarStyles = `
@@ -464,6 +465,11 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
   );
 };
 
+// Extend AxiosRequestConfig to include onUploadProgress
+interface CustomAxiosRequestConfig extends AxiosRequestConfig {
+  onUploadProgress?: (progressEvent: ProgressEvent) => void;
+}
+
 const CourseContent: React.FC = () => {
   const { title } = useParams<{ title: string }>();
   const [course, setCourse] = useState<Course | null>(null);
@@ -473,8 +479,8 @@ const CourseContent: React.FC = () => {
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [showDocUpload, setShowDocUpload] = useState(false);
   const [showVideoUpload, setShowVideoUpload] = useState(false);
-  const { register: docRegister, handleSubmit: handleDocSubmit, reset: resetDoc } = useForm();
-  const { register: videoRegister, handleSubmit: handleVideoSubmit, reset: resetVideo, formState: { errors } } = useForm();
+  const { register: docRegister, handleSubmit: handleDocSubmit, reset: resetDoc, formState: { errors } } = useForm();
+  const { register: videoRegister, handleSubmit: handleVideoSubmit, reset: resetVideo, formState: { errors: videoErrors } } = useForm();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [user, setUser] = useState<any>(null);
@@ -518,36 +524,61 @@ const CourseContent: React.FC = () => {
   const isInstructor = user && (user.role === 'teacher' || user.role === 'admin') && 
     course?.instructor === user.name;
 
+  // Define the expected response type
+  interface DocumentUploadResponse {
+    success: boolean;
+    course: Course; // Assuming you have a Course type defined
+  }
+
+  // Update the handleDocUpload function
   const handleDocUpload = async (data: any) => {
     if (!course) return;
     
     const formData = new FormData();
     formData.append('title', data.title);
-    if (data.description) formData.append('description', data.description);
-    if (data.document[0]) formData.append('document', data.document[0]);
-    
-    // Add document type
-    const docType = data.docType || detectDocumentType(data.document[0]?.name || '');
-    formData.append('type', docType);
+    if (data.document[0]) {
+      formData.append('document', data.document[0]);
+      const docType = detectDocumentType(data.document[0].name);
+      formData.append('type', docType);
+    }
 
     try {
       setUploading(true);
       setUploadProgress(0);
       
-      // Create axios instance for the request
-      
-      // Upload with progress tracking
-      
-      // Update the course with the new data
-      const updatedCourse = await getCourseByTitle(title!);
-      setCourse(updatedCourse);
-      
-      toast.success('Document téléchargé avec succès!');
-      setShowDocUpload(false);
-      resetDoc();
+      const axiosInstance = axios.create({
+        baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      // Use the extended type for the request config
+      const response = await axiosInstance.post<DocumentUploadResponse>(
+        `/api/courses/${course._id}/documents`,
+        formData,
+        {
+          onUploadProgress: (progressEvent: ProgressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(percentCompleted);
+            }
+          }
+        }
+      );
+
+      if (response.data.success) {
+        const updatedCourse = await getCourseByTitle(title!);
+        setCourse(updatedCourse);
+        toast.success('Document uploaded successfully');
+        setShowDocUpload(false);
+        resetDoc();
+        setDocumentName(null);
+      }
     } catch (error: any) {
-      console.error('Error uploading document:', error);
-      toast.error(error.message || 'Échec du téléchargement du document');
+      console.error('Document upload error:', error);
+      toast.error(error.response?.data?.message || 'Failed to upload document');
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -858,7 +889,7 @@ const CourseContent: React.FC = () => {
                       <span className="text-xs text-gray-500 mt-1">
                         Formats acceptés: MP4, WebM, OGG (max 500MB)
                       </span>
-                      {errors.video && (
+                      {videoErrors.video && (
                         <span className="text-xs text-red-500 mt-1">
                           Veuillez sélectionner une vidéo
                         </span>
@@ -910,39 +941,19 @@ const CourseContent: React.FC = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-auto relative shadow-xl">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Upload Document</h2>
             
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              const form = e.target as HTMLFormElement;
-              const formData = new FormData(form);
-              
-              try {
-                setUploading(true);
-                await handleDocumentUpload(course._id!, formData);
-                setShowDocUpload(false);
-                toast.success('Document uploaded successfully');
-              } catch (error) {
-                toast.error('Failed to upload document');
-              } finally {
-                setUploading(false);
-              }
-            }} className="space-y-4">
-              
-              {/* Document Title */}
+            <form onSubmit={handleDocSubmit(handleDocUpload)} className="space-y-4">
               <div>
                 <label htmlFor="document-title" className="block text-sm font-medium text-gray-700 mb-1">
                   Document Title <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
-                  id="document-title"
-                  name="title"
-                  required
+                  {...docRegister('title', { required: true })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter document title"
                 />
+                {errors.title && <span className="text-red-500 text-sm">Title is required</span>}
               </div>
               
-              {/* Document File Upload */}
               <div>
                 <label htmlFor="document-file" className="block text-sm font-medium text-gray-700 mb-1">
                   Document File <span className="text-red-500">*</span>
@@ -958,35 +969,41 @@ const CourseContent: React.FC = () => {
                       <label htmlFor="document-file" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
                         <span>Upload a file</span>
                         <input 
-                          id="document-file" 
-                          name="document" 
+                          {...docRegister('document', { required: true })}
+                          id="document-file"
                           type="file" 
                           className="sr-only"
-                          accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" 
-                          required
-                          onChange={handleDocumentChange}
+                          accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              setDocumentName(e.target.files[0].name);
+                            }
+                          }}
                         />
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
                     
-                    {/* File Preview */}
                     {documentName && (
                       <div className="mt-2 flex items-center justify-center">
                         <FaFileAlt className="h-5 w-5 text-blue-500 mr-2" />
                         <span className="text-sm text-gray-700">{documentName}</span>
                       </div>
                     )}
+                    {errors.document && <span className="text-red-500 text-sm">Document is required</span>}
                   </div>
                 </div>
               </div>
               
-              {/* Submit Button */}
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => setShowDocUpload(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  onClick={() => {
+                    setShowDocUpload(false);
+                    resetDoc();
+                    setDocumentName(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                 >
                   Cancel
                 </button>
@@ -1009,13 +1026,6 @@ const CourseContent: React.FC = () => {
                   )}
                 </button>
               </div>
-              
-              {/* Upload Progress Bar (if needed) */}
-              {uploading && uploadProgress > 0 && (
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
-                </div>
-              )}
             </form>
             
             <button 

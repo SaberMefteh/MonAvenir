@@ -97,16 +97,29 @@ const videoUpload = multer({
   { name: 'thumbnail', maxCount: 1 }
 ]);
 
-// Updated document upload middleware
+// Configure Multer storage for document files
+const documentStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = 'uploads/documents/';
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+// Document upload middleware
 const documentUpload = multer({
-  storage: storage,
+  storage: documentStorage,
   fileFilter: (req, file, cb) => {
-    if (file.fieldname === 'document') {
-      const allowedTypes = ['application/pdf', 'application/msword', 
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (!allowedTypes.includes(file.mimetype)) {
-        return cb(new Error('Only PDF and Word documents are allowed!'), false);
-      }
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error('Only PDF and Word documents are allowed!'), false);
     }
     cb(null, true);
   },
@@ -430,7 +443,7 @@ router.post('/:id/videos', auth, (req, res) => {
 });
 
 // Add document to course
-router.post('/:courseId/documents', auth, upload.single('document'), async (req, res) => {
+router.post('/:courseId/documents', auth, documentUpload, async (req, res) => {
   try {
     const { courseId } = req.params;
     const { title } = req.body;
@@ -464,7 +477,7 @@ router.post('/:courseId/documents', auth, upload.single('document'), async (req,
     course.documents.push(document);
     await course.save();
 
-    res.status(201).json(course);
+    res.status(201).json({ success: true, course });
   } catch (error) {
     res.status(500).json({ message: 'Error adding document', error: error.message });
   }
