@@ -9,7 +9,7 @@ import UniversityGuide from '../components/orientation/UniversityGuide';
 import ScoreCalculator from '../components/orientation/ScoreCalculator';
 import InteractiveTest from '../components/orientation/InteractiveTest';
 import PageBanner from '../components/shared/PageBanner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';  
 
 type ContentType = 'university' | 'calculator' | 'test';
 
