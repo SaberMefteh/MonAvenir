@@ -1,4 +1,5 @@
-require('dotenv').config();
+const dotenv = require('dotenv');
+dotenv.config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -15,9 +16,10 @@ const xss = require('xss-clean');
 const mongoSanitize = require('express-mongo-sanitize');
 const rateLimit = require('express-rate-limit');
 const auth = require('./middleware/auth');
-const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken'); // Added for token verification
 
 console.log('MONGO_URI:', process.env.MONGO_URI ? 'exists' : 'missing');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'exists' : 'missing');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,14 +31,14 @@ app.use(helmet()); // Set security headers
 app.use(xss()); // Sanitize inputs against XSS
 app.use(mongoSanitize()); // Sanitize inputs against NoSQL injection
 
-// Configuration CORS
+// CORS configuration
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
+    'Content-Type',
+    'Authorization',
     'X-CSRF-Token',
     'X-Requested-With',
     'Accept',
@@ -44,37 +46,35 @@ app.use(cors({
     'Range'
   ],
   exposedHeaders: [
-    'Content-Length', 
-    'Content-Range', 
-    'Content-Disposition', 
+    'Content-Length',
+    'Content-Range',
+    'Content-Disposition',
     'Accept-Ranges'
   ]
 }));
 
-// Configuration du rate limiter
+// Rate limiter configuration
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limite chaque IP à 100 requêtes par fenêtre
+  max: 100, // Limit each IP to 100 requests per window
   message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true, // Retourne `RateLimit-*` headers
-  legacyHeaders: false, // Désactive les `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false
 });
-
-// Appliquer le rate limiter à toutes les routes
 app.use(limiter);
 
-// More aggressive rate limiting for authentication routes
+// Aggressive rate limiting for authentication routes
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // limit each IP to 10 login/signup requests per hour
+  max: 10, // Limit each IP to 10 login/signup requests per hour
+  message: 'Too many authentication attempts, please try again after an hour',
   standardHeaders: true,
-  legacyHeaders: false,
-  message: 'Too many authentication attempts, please try again after an hour'
+  legacyHeaders: false
 });
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/signup', authLimiter);
 
-// Add security headers for video streaming
+// Security headers for video streaming
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
@@ -83,14 +83,13 @@ app.use((req, res, next) => {
 });
 
 // Body parsers
-app.use(express.json({ limit: '500mb' })); // Increased limit for JSON body
-app.use(express.urlencoded({ extended: true, limit: '500mb' })); // Increased limit for URL-encoded body
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 app.use(bodyParser.json({ limit: '500mb' }));
 
 // Configure upload limits
 app.use((req, res, next) => {
-  // Set timeout to 10 minutes for large uploads
-  req.setTimeout(10 * 60 * 1000);
+  req.setTimeout(10 * 60 * 1000); // 10 minutes timeout for large uploads
   res.setTimeout(10 * 60 * 1000);
   next();
 });
@@ -103,18 +102,16 @@ const createUploadDirectories = () => {
     path.join(__dirname, 'uploads/documents'),
     path.join(__dirname, 'uploads/videos'),
   ];
-  
+
   uploadPaths.forEach(dir => {
     try {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true, mode: 0o755 });
         console.log(`Created directory: ${dir}`);
       } else {
-        // Ensure directory has correct permissions
         fs.chmodSync(dir, 0o755);
       }
-      
-      // Test write permissions by creating and removing a test file
+
       const testFile = path.join(dir, '.test-write-permission');
       fs.writeFileSync(testFile, 'test');
       fs.unlinkSync(testFile);
@@ -127,9 +124,9 @@ const createUploadDirectories = () => {
 
 createUploadDirectories();
 
-// Configuration pour les fichiers statiques
+// Serve static files from uploads directory
 app.use('/uploads', express.static('uploads', {
-  setHeaders: (res, path) => {
+  setHeaders: (res) => {
     res.set('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -137,9 +134,8 @@ app.use('/uploads', express.static('uploads', {
   }
 }));
 
-// Serve static files from public directory with proper CORS headers
+// Serve images from public directory
 app.use('/images', (req, res, next) => {
-  // Set CORS headers for images
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
@@ -147,9 +143,8 @@ app.use('/images', (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, 'public/images')));
 
-// Serve course banner images
+// Serve course banner images with authentication
 app.use('/uploads', auth, (req, res, next) => {
-  // Set CORS headers for images
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization');
@@ -158,22 +153,115 @@ app.use('/uploads', auth, (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 
-// Add a route to check if a file exists
+// Video streaming route
+app.get('/api/stream/:filename', (req, res) => {
+  const { token } = req.query; // Get token from query parameter
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, 'uploads', 'videos', filename);
+
+  // Log the request for debugging
+  console.log(`Streaming request for: ${filename}`);
+  console.log(`Token: ${token ? token : 'missing'}`);
+
+  // Validate filename to prevent path traversal
+  if (!/^[a-zA-Z0-9_\-\.]+$/.test(filename)) {
+    console.log('Invalid filename:', filename);
+    return res.status(400).json({ message: 'Invalid filename' });
+  }
+
+  // Verify JWT token
+  if (!token) {
+    console.log('No token provided');
+    return res.status(401).json({ message: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Token verified:', decoded);
+  } catch (err) {
+    console.log('Token verification failed:', err.message);
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+
+  // Check if file exists
+  if (!fs.existsSync(filePath)) {
+    console.log(`File not found: ${filePath}`);
+    return res.status(404).json({ message: 'Video not found' });
+  }
+
+  // Get file stats
+  const stat = fs.statSync(filePath);
+  const fileSize = stat.size;
+  const range = req.headers.range;
+
+  // Set security headers
+  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+
+  if (range) {
+    // Handle partial content (streaming)
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    const chunksize = end - start + 1;
+
+    if (start >= fileSize || end >= fileSize) {
+      return res.status(416).json({ message: 'Requested range not satisfiable' });
+    }
+
+    const file = fs.createReadStream(filePath, { start, end });
+    const head = {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunksize,
+      'Content-Type': 'video/mp4',
+    };
+
+    res.writeHead(206, head);
+    file.pipe(res);
+
+    file.on('error', (err) => {
+      console.error(`Stream error: ${err.message}`);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error streaming video' });
+      }
+    });
+  } else {
+    // Serve full file
+    const head = {
+      'Content-Length': fileSize,
+      'Content-Type': 'video/mp4',
+      'Accept-Ranges': 'bytes',
+    };
+
+    res.writeHead(200, head);
+    const file = fs.createReadStream(filePath);
+    file.pipe(res);
+
+    file.on('error', (err) => {
+      console.error(`Stream error: ${err.message}`);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error streaming video' });
+      }
+    });
+  }
+});
+
+// File check route
 app.get('/check-file', auth, (req, res) => {
   const filePath = req.query.path;
   if (!filePath) {
     return res.status(400).json({ exists: false, message: 'No file path provided' });
   }
-  
-  // Normalize the path to prevent directory traversal attacks
+
   const normalizedPath = path.normalize(filePath).replace(/^(\.\.(\/|\\|$))+/, '');
   if (normalizedPath !== filePath) {
     return res.status(403).json({ message: 'Forbidden' });
   }
-  
+
   const fullPath = path.join(__dirname, normalizedPath);
   const exists = fs.existsSync(fullPath);
-  
+
   res.json({
     exists,
     path: normalizedPath,
@@ -182,33 +270,29 @@ app.get('/check-file', auth, (req, res) => {
   });
 });
 
-// Add a debug route for video files
+// Debug route for video files
 app.get('/api/debug/video/:filename', auth, (req, res) => {
   const filename = req.params.filename;
-  
-  // Validate filename to prevent path traversal
+
   if (!/^[a-zA-Z0-9_\-\.]+$/.test(filename)) {
     return res.status(400).json({ message: 'Invalid filename' });
   }
-  
+
   const videoPath = path.join(__dirname, 'uploads', 'videos', filename);
-  
-  // Check if file exists
   const exists = fs.existsSync(videoPath);
   let stats = null;
   let readable = false;
-  
+
   if (exists) {
     try {
       stats = fs.statSync(videoPath);
-      // Check if file is readable
       fs.accessSync(videoPath, fs.constants.R_OK);
       readable = true;
     } catch (err) {
       console.error(`Error accessing video file: ${err.message}`);
     }
   }
-  
+
   res.json({
     filename,
     exists,
@@ -225,15 +309,14 @@ app.get('/api/debug/video/:filename', auth, (req, res) => {
   });
 });
 
-// Debug middleware (only in development)
+// Development middleware
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-CSRF-Token');
     res.header('Access-Control-Allow-Credentials', 'true');
-    
-    // Handle OPTIONS
+
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);
     }
@@ -249,67 +332,250 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Routes
+// Root route (optional)
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to the E-Learning Platform API' });
+});
+
+// API Routes
 app.use('/api/courses', courseRoutes);
 app.use('/api/courses', videoUploadRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 
-// Add a direct route for video streaming
-app.get('/api/stream/:filename', auth, (req, res) => {
-  const { filename } = req.params;
-  const videoPath = path.join(__dirname, 'uploads/videos', filename);
-
-  if (!fs.existsSync(videoPath)) {
-    return res.status(404).json({ message: 'Video not found' });
-  }
-
-  const stat = fs.statSync(videoPath);
-  const fileSize = stat.size;
-  const range = req.headers.range;
-
-  if (range) {
-    const parts = range.replace(/bytes=/, '').split('-');
-    const start = parseInt(parts[0], 10);
-    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-    const chunksize = (end - start) + 1;
-    const file = fs.createReadStream(videoPath, { start, end });
-
-    res.writeHead(206, {
-      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-      'Accept-Ranges': 'bytes',
-      'Content-Length': chunksize,
-      'Content-Type': 'video/mp4',
-    });
-
-    file.pipe(res);
-  } else {
-    res.writeHead(200, {
-      'Content-Length': fileSize,
-      'Content-Type': 'video/mp4',
-    });
-
-    fs.createReadStream(videoPath).pipe(res);
-  }
+// PDF download route with rate limiting
+const pdfLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit each IP to 30 downloads per 15 minutes
+  message: 'Trop de téléchargements. Veuillez réessayer plus tard.',
+  standardHeaders: true,
+  legacyHeaders: false
 });
 
-// Error handling for file uploads
-app.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
+app.get('/api/pdf/:filename', [auth, pdfLimiter], async (req, res) => {
+  const filename = req.params.filename;
+
+  console.log('PDF download request for:', filename);
+
+  if (!/^[a-zA-Z0-9_\-\.]+\.pdf$/.test(filename)) {
+    console.log('Invalid filename format:', filename);
+    return res.status(400).json({ 
+      message: 'Format de nom de fichier invalide',
+      details: 'Le nom de fichier contient des caractères non autorisés'
+    });
+  }
+
+  const documentsDir = path.join(__dirname, 'uploads', 'documents');
+  const pdfPath = path.join(documentsDir, filename);
+
+  if (!pdfPath.startsWith(documentsDir)) {
+    console.log('Path traversal attempt detected:', pdfPath);
+    return res.status(403).json({ message: 'Accès refusé' });
+  }
+
+  console.log('Looking for PDF at path:', pdfPath);
+
+  try {
+    await fs.promises.mkdir(documentsDir, { recursive: true, mode: 0o755 });
+  } catch (dirErr) {
+    console.error('Failed to ensure documents directory exists:', dirErr);
+    return res.status(500).json({ 
+      message: 'Erreur de configuration du serveur',
+      details: 'Le répertoire des documents n\'est pas accessible'
+    });
+  }
+
+  try {
+    const stats = await fs.promises.stat(pdfPath);
+
+    if (!stats.isFile()) {
+      console.error('Path exists but is not a file:', pdfPath);
       return res.status(400).json({ 
-        message: 'File is too large. Maximum size is 500MB' 
+        message: 'Le chemin spécifié n\'est pas un fichier' 
       });
     }
-    return res.status(400).json({ 
-      message: 'File upload error', 
-      error: err.message 
+
+    const range = req.headers.range;
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : stats.size - 1;
+
+      if (start >= stats.size || end >= stats.size) {
+        res.status(416).json({ message: 'Plage demandée non satisfiable' });
+        return;
+      }
+
+      const chunksize = (end - start) + 1;
+      const stream = fs.createReadStream(pdfPath, { start, end });
+
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${stats.size}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+        'Cache-Control': 'public, max-age=3600',
+        'X-Content-Type-Options': 'nosniff'
+      });
+
+      stream.pipe(res);
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+      'Content-Length': stats.size,
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'public, max-age=3600',
+      'X-Content-Type-Options': 'nosniff'
+    });
+
+    const stream = fs.createReadStream(pdfPath);
+
+    stream.on('error', (streamErr) => {
+      console.error('Error streaming file:', streamErr);
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          message: 'Erreur lors de la lecture du fichier',
+          details: streamErr.message
+        });
+      }
+      stream.destroy();
+      res.destroy();
+    });
+
+    req.on('close', () => {
+      stream.destroy();
+    });
+
+    stream.on('end', () => {
+      console.log(`Successfully streamed PDF: ${filename}`);
+    });
+
+    stream.pipe(res);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.log('PDF file not found:', pdfPath);
+      try {
+        const availableFiles = await fs.promises.readdir(documentsDir);
+        return res.status(404).json({ 
+          message: 'Fichier PDF non trouvé',
+          details: {
+            requestedFile: filename,
+            documentsDir: documentsDir,
+            availableFiles: availableFiles
+          }
+        });
+      } catch (readErr) {
+        console.error('Error reading documents directory:', readErr);
+        return res.status(404).json({ 
+          message: 'Fichier PDF non trouvé',
+          details: { requestedFile: filename }
+        });
+      }
+    }
+
+    console.error('Error accessing PDF file:', error);
+    res.status(500).json({ 
+      message: 'Erreur d\'accès au fichier',
+      details: error.message
     });
   }
-  next(err);
 });
 
-// Middleware de gestion des erreurs
+// File debug route
+app.get('/api/debug/file', auth, async (req, res) => {
+  const filePath = req.query.path;
+  if (!filePath) {
+    return res.status(400).json({ 
+      exists: false, 
+      message: 'Chemin de fichier non fourni' 
+    });
+  }
+
+  try {
+    const normalizedPath = path.normalize(filePath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const fullPath = path.join(__dirname, normalizedPath);
+    const uploadsDir = path.join(__dirname, 'uploads');
+
+    if (!fullPath.startsWith(uploadsDir)) {
+      console.log('Access denied - path outside uploads directory:', fullPath);
+      return res.status(403).json({ 
+        exists: false, 
+        message: 'Accès refusé - le chemin doit être dans le répertoire uploads' 
+      });
+    }
+
+    const documentsDir = path.join(__dirname, 'uploads', 'documents');
+    await fs.promises.mkdir(documentsDir, { recursive: true, mode: 0o755 })
+      .catch(err => console.error('Error creating documents directory:', err));
+
+    const exists = await fs.promises.access(fullPath, fs.constants.F_OK)
+      .then(() => true)
+      .catch(() => false);
+
+    let fileInfo = null;
+    if (exists) {
+      const stats = await fs.promises.stat(fullPath);
+      fileInfo = {
+        size: stats.size,
+        isDirectory: stats.isDirectory(),
+        created: stats.birthtime,
+        modified: stats.mtime,
+        permissions: stats.mode.toString(8).slice(-3)
+      };
+
+      try {
+        await fs.promises.access(fullPath, fs.constants.R_OK);
+        fileInfo.readable = true;
+      } catch (err) {
+        fileInfo.readable = false;
+        console.error('File not readable:', fullPath, err);
+      }
+    }
+
+    const dirPath = path.dirname(fullPath);
+    let availableFiles = [];
+    try {
+      availableFiles = await fs.promises.readdir(dirPath);
+    } catch (err) {
+      console.error('Error reading directory:', dirPath, err);
+    }
+
+    console.log('File check result:', {
+      path: filePath,
+      exists,
+      readable: fileInfo?.readable,
+      availableFiles
+    });
+
+    res.json({
+      exists,
+      path: filePath,
+      fullPath,
+      info: fileInfo,
+      directory: {
+        path: dirPath,
+        files: availableFiles
+      },
+      message: exists 
+        ? (fileInfo?.readable ? 'File exists and is readable' : 'File exists but is not readable')
+        : 'File does not exist'
+    });
+  } catch (error) {
+    console.error('Error checking file:', error);
+    res.status(500).json({
+      exists: false,
+      path: filePath,
+      error: error.message,
+      message: 'Erreur lors de la vérification du fichier'
+    });
+  }
+});
+
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error details:', {
     message: err.message,
@@ -317,7 +583,6 @@ app.use((err, req, res, next) => {
     status: err.status
   });
 
-  // Gérer les erreurs CORS
   if (err.name === 'CORSError') {
     return res.status(403).json({
       message: 'CORS error',
@@ -326,7 +591,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Gérer les erreurs de validation
   if (err.name === 'ValidationError') {
     return res.status(400).json({
       message: 'Validation error',
@@ -335,7 +599,6 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Erreur par défaut
   res.status(err.status || 500).json({
     message: err.message || 'Une erreur est survenue sur le serveur',
     code: err.code || 'SERVER_ERROR',
@@ -343,146 +606,19 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Handle 404s
+// 404 handler (must be last route)
 app.use((req, res) => {
   console.log('404 for URL:', req.url);
   res.status(404).json({ message: 'Route not found' });
 });
 
-// Add a debug route for checking file existence
-app.get('/api/debug/file', auth, (req, res) => {
-  const filePath = req.query.path;
-  if (!filePath) {
-    return res.status(400).json({ exists: false, message: 'No file path provided' });
-  }
-  
-  // Normalize the path to prevent directory traversal attacks
-  const normalizedPath = path.normalize(filePath).replace(/^(\.\.(\/|\\|$))+/, '');
-  const fullPath = path.join(__dirname, normalizedPath);
-  
-  try {
-    const exists = fs.existsSync(fullPath);
-    let fileInfo = null;
-    
-    if (exists) {
-      const stats = fs.statSync(fullPath);
-      fileInfo = {
-        size: stats.size,
-        isDirectory: stats.isDirectory(),
-        created: stats.birthtime,
-        modified: stats.mtime,
-        permissions: stats.mode.toString(8).slice(-3)
-      };
-    }
-    
-    res.json({
-      exists,
-      path: filePath,
-      fullPath: fullPath,
-      info: fileInfo,
-      message: exists ? 'File exists' : 'File does not exist'
-    });
-  } catch (error) {
-    res.status(500).json({
-      exists: false,
-      path: filePath,
-      fullPath: fullPath,
-      error: error.message,
-      message: 'Error checking file'
-    });
-  }
-});
-
-// Add a specific route for PDF files
-app.get('/api/pdf/:filename', auth, (req, res) => {
-  const filename = req.params.filename;
-  
-  // Validate filename to prevent path traversal
-  if (!/^[a-zA-Z0-9_\-\.]+\.pdf$/.test(filename)) {
-    return res.status(400).json({ message: 'Invalid filename' });
-  }
-  
-  const pdfPath = path.join(__dirname, 'uploads', 'documents', filename);
-  
-  // Check if file exists
-  if (!fs.existsSync(pdfPath)) {
-    console.error(`PDF file not found: ${pdfPath}`);
-    return res.status(404).json({ message: 'PDF not found' });
-  }
-  
-  try {
-    const stat = fs.statSync(pdfPath);
-    
-    // Handle range requests
-    const range = req.headers.range;
-    if (range) {
-      const parts = range.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1;
-      const chunksize = (end - start) + 1;
-      const file = fs.createReadStream(pdfPath, { start, end });
-      
-      res.writeHead(206, {
-        'Content-Range': `bytes ${start}-${end}/${stat.size}`,
-        'Accept-Ranges': 'bytes',
-        'Content-Length': chunksize,
-        'Content-Type': 'application/pdf',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-        'Access-Control-Allow-Headers': 'Range, Authorization',
-        'Cross-Origin-Resource-Policy': 'cross-origin'
-      });
-      
-      file.pipe(res);
-    } else {
-      // Set appropriate headers for PDF
-      res.writeHead(200, {
-        'Content-Type': 'application/pdf',
-        'Content-Length': stat.size,
-        'Content-Disposition': `inline; filename="${filename}"`,
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-        'Access-Control-Allow-Headers': 'Range, Authorization',
-        'Cross-Origin-Resource-Policy': 'cross-origin',
-        'Accept-Ranges': 'bytes'
-      });
-      
-      // Stream the PDF file
-      const stream = fs.createReadStream(pdfPath);
-      stream.pipe(res);
-      
-      stream.on('error', (error) => {
-        console.error(`Error streaming PDF: ${error.message}`);
-        if (!res.headersSent) {
-          res.status(500).json({ message: 'Error streaming PDF' });
-        }
-      });
-    }
-  } catch (error) {
-    console.error(`Error serving PDF: ${error.message}`);
-    res.status(500).json({ message: 'Error serving PDF' });
-  }
-});
-
-// Add a middleware to set Access-Control-Allow-Credentials
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Credentials', 'true');
-  next();
-});
-
 // Start server and connect to MongoDB
 const startServer = async () => {
   try {
-    const MONGO_URI = process.env.MONGO_URI || 'your_connection_string_here';
     console.log('Connecting to MongoDB...');
-    
-    await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('MongoDB connected successfully');
-    
+
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
@@ -493,5 +629,3 @@ const startServer = async () => {
 };
 
 startServer();
-
-
