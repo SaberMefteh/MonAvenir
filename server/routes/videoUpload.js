@@ -169,7 +169,7 @@ router.post('/:id/videos', auth, async (req, res) => {
         }
         return res.status(400).json({ 
           success: false, 
-          message: err.message || 'Error uploading files' 
+          message: err.message || 'Error when uploading files' 
         });
       }
       

@@ -50,7 +50,7 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ 
         success: false,
         message: 'Missing required fields',
-        details: 'Email, password, username, phone, and role are required'
+        details: 'Email, password, username, phone, and/or role are required'
       });
     }
 

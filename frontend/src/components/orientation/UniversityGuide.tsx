@@ -370,9 +370,4 @@ const UniversityGuide: React.FC = () => {
   );
 };
 
-<<<<<<< HEAD
 export default UniversityGuide;
-  
-=======
-export default UniversityGuide;
->>>>>>> ba62134 (Updated frontend components and package configurations)

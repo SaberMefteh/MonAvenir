@@ -1585,7 +1585,7 @@ const CourseContent: React.FC = () => {
               <div className="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0">
                 <FaInfoCircle className="h-3 w-3" />
               </div>
-              Certificat d'achèvement
+              Certificat d'achvement
             </li>
           </ul>
         </div>

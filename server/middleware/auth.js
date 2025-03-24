@@ -31,7 +31,7 @@ const auth = async (req, res, next) => {
     // Check rate limit
     const requestTimestamps = rateLimitMap.get(ip) || [];
     if (requestTimestamps.length >= MAX_REQUESTS) {
-      console.log(`Rate limit exceeded for IP: ${ip}`);
+      console.log(`Rate l imit exceeded for IP: ${ip}`);
       return res.status(429).json({ 
         error: 'Too many requests, please try again later',
         retryAfter: Math.ceil((WINDOW_MS - (now - requestTimestamps[0])) / 1000)
