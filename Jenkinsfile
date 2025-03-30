@@ -3,58 +3,62 @@ pipeline {
 
     environment {
         // Defining environment variables for ease of use
-        GIT_REPO = "https://github.com/SaberMefteh/MonAvenir.git"  // GitHub repo URL
-        BACKEND_IMAGE = "sabermefteh/monavenir-backend"
-        FRONTEND_IMAGE = "sabermefteh/monavenir-frontend"
+        DOCKER_REGISTRY = "http://localhost:8082/repository/monavenir/"  // Docker registry URL
+        DOCKER_CREDENTIALS_ID = "nexus-credentials"  // Credentials ID for Nexus registry
+        NODE_VERSION = "20"  // Node.js version for compatibility
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo "Cloning repository from GitHub..."
-
-                // Checkout the repository
-                checkout scm
-
-                echo "Repository cloned successfully!"
+                echo "Checking out the source code from the Git repository..."
+                checkout scm  // Checks out the repository defined by the pipeline's Git source (defaults to the Git URL defined in Jenkins)
             }
         }
 
-        stage('Build Backend') {
+        stage('Build') {
             steps {
-                echo "Building the backend..."
+                echo "Starting the build process for the MERN e-learning platform..."
 
-                // Install backend dependencies and build
-                dir('server') {
+                // Install backend dependencies and build the backend
+                dir('backend') {
                     echo "Installing backend dependencies..."
-                    sh 'npm install'  // Install backend dependencies
-                    echo "Building backend..."
-                    sh 'npm run build'  // Build backend
-
-                    // Build Docker image for backend
-                    echo "Building Docker image for backend..."
-                    sh 'docker build -t ${BACKEND_IMAGE} .'
-                    echo "Backend Docker image built successfully!"
+                    sh 'npm install'
+                    echo "Building backend application..."
+                    sh 'npm run build'
                 }
-            }
-        }
 
-        stage('Build Frontend') {
-            steps {
-                echo "Building the frontend..."
-
-                // Install frontend dependencies and build
+                // Install frontend dependencies and build the frontend
                 dir('frontend') {
                     echo "Installing frontend dependencies..."
-                    sh 'npm install'  // Install frontend dependencies
-                    echo "Building frontend..."
-                    sh 'npm run build'  // Build frontend
-
-                    // Build Docker image for frontend
-                    echo "Building Docker image for frontend..."
-                    sh 'docker build -t ${FRONTEND_IMAGE} .'
-                    echo "Frontend Docker image built successfully!"
+                    sh 'npm install'
+                    echo "Building frontend application..."
+                    sh 'npm run build'
                 }
+
+                // Build Docker images for both frontend and backend
+                script {
+                    echo "Building Docker images for the backend and frontend..."
+
+                    // Build backend Docker image
+                    sh "docker build -t ${DOCKER_REGISTRY}/monavenir-backend:${BUILD_NUMBER} ./backend"
+                    
+                    // Build frontend Docker image
+                    sh "docker build -t ${DOCKER_REGISTRY}/monavenir-frontend:${BUILD_NUMBER} ./frontend"
+
+                    // Login to Nexus Docker registry using stored credentials
+                    withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        echo "Logging into Docker registry..."
+                        sh "echo ${DOCKER_PASSWORD} | docker login ${DOCKER_REGISTRY} -u ${DOCKER_USERNAME} --password-stdin"
+                    }
+
+                    // Push Docker images to Nexus registry
+                    echo "Pushing Docker images to Nexus registry..."
+                    sh "docker push ${DOCKER_REGISTRY}/monavenir-backend:${BUILD_NUMBER}"
+                    sh "docker push ${DOCKER_REGISTRY}/monavenir-frontend:${BUILD_NUMBER}"
+                }
+
+                echo "Build stage completed successfully!"
             }
         }
     }
