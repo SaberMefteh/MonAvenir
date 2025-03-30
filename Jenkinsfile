@@ -36,27 +36,7 @@ pipeline {
                     sh 'npm run build'
                 }
 
-                // Build Docker images for both frontend and backend
-                script {
-                    echo "Building Docker images for the backend and frontend..."
-
-                    // Build backend Docker image
-                    sh "docker build -t ${DOCKER_REGISTRY}/monavenir-backend:${BUILD_NUMBER} ./backend"
-                    
-                    // Build frontend Docker image
-                    sh "docker build -t ${DOCKER_REGISTRY}/monavenir-frontend:${BUILD_NUMBER} ./frontend"
-
-                    // Login to Nexus Docker registry using stored credentials
-                    withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        echo "Logging into Docker registry..."
-                        sh "echo ${DOCKER_PASSWORD} | docker login ${DOCKER_REGISTRY} -u ${DOCKER_USERNAME} --password-stdin"
-                    }
-
-                    // Push Docker images to Nexus registry
-                    echo "Pushing Docker images to Nexus registry..."
-                    sh "docker push ${DOCKER_REGISTRY}/monavenir-backend:${BUILD_NUMBER}"
-                    sh "docker push ${DOCKER_REGISTRY}/monavenir-frontend:${BUILD_NUMBER}"
-                }
+               
 
                 echo "Build stage completed successfully!"
             }
