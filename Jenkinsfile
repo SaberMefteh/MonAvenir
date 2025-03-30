@@ -23,7 +23,7 @@ pipeline {
                 echo "Building the backend..."
 
                 // Install backend dependencies and build
-                dir('backend') {
+                dir('server') {
                     echo "Installing backend dependencies..."
                     sh 'npm install'  // Install backend dependencies
                     echo "Building backend..."
