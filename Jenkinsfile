@@ -21,7 +21,7 @@ pipeline {
                 echo "Starting the build process for the MERN e-learning platform..."
 
                 // Install backend dependencies and build the backend
-                dir('backend') {
+                dir('server') {
                     echo "Installing backend dependencies..."
                     sh 'npm install'
                     echo "Building backend application..."
