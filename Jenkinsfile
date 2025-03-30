@@ -3,14 +3,14 @@ pipeline {
 
     environment {
         // Defining environment variables for ease of use
-        DOCKER_REGISTRY = "localhost:8082"  // Docker registry URL
-        DOCKER_CREDENTIALS_ID = "nexus-credentials"  // Credentials ID for Nexus registry
+        DOCKER_REGISTRY = "http://localhost:8082/repository/monavenir/"  // Docker registry URL
+        NEXUS_CREDENTIALS_ID = "nexus-credentials"  // Credentials ID for Nexus registry
         NODE_VERSION = "20"  // Node.js version for compatibility
     }
 
     stages {
         stage('Checkout') {
-            steps {
+            steps { 
                 echo "Checking out the source code from the Git repository..."
                 checkout scm  // Checks out the repository defined by the pipeline's Git source (defaults to the Git URL defined in Jenkins)
             }
@@ -21,7 +21,7 @@ pipeline {
                 echo "Starting the build process for the MERN e-learning platform..."
 
                 // Install backend dependencies and build the backend
-                dir('backend') {
+                dir('server') {
                     echo "Installing backend dependencies..."
                     sh 'npm install'
                     echo "Building backend application..."
@@ -36,7 +36,15 @@ pipeline {
                     sh 'npm run build'
                 }
 
-                // Build Docker images for both frontend and backend
+               
+
+                echo "Build stage completed successfully!"
+            }
+        }
+    }
+}
+"""
+ // Build Docker images for both frontend and backend
                 script {
                     echo "Building Docker images for the backend and frontend..."
 
@@ -47,7 +55,7 @@ pipeline {
                     sh "docker build -t ${DOCKER_REGISTRY}/monavenir-frontend:${BUILD_NUMBER} ./frontend"
 
                     // Login to Nexus Docker registry using stored credentials
-                    withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         echo "Logging into Docker registry..."
                         sh "echo ${DOCKER_PASSWORD} | docker login ${DOCKER_REGISTRY} -u ${DOCKER_USERNAME} --password-stdin"
                     }
@@ -56,10 +64,4 @@ pipeline {
                     echo "Pushing Docker images to Nexus registry..."
                     sh "docker push ${DOCKER_REGISTRY}/monavenir-backend:${BUILD_NUMBER}"
                     sh "docker push ${DOCKER_REGISTRY}/monavenir-frontend:${BUILD_NUMBER}"
-                }
-
-                echo "Build stage completed successfully!"
-            }
-        }
-    }
-}
+                }"""
