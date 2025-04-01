@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Defining environment variables for ease of use
-        DOCKER_REGISTRY = "http://localhost:8082/repository/monavenir/"  // Nexus Docker registry URL
+        DOCKER_REGISTRY = "localhost:8082/repository/monavenir"  // Nexus Docker registry URL without http
         NEXUS_CREDENTIALS_ID = "nexus-credentials"  // Credentials ID for Nexus in Jenkins
         NODE_VERSION = "20"  // Node.js version for compatibility
         IMAGE_NAME_BACKEND = "mern-elearning-backend"  // Backend Docker image name
@@ -74,12 +74,12 @@ pipeline {
                 }
 
                 // Tag and push backend image
-                sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
-                sh "docker push ${DOCKER_REGISTRY}${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+                sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+                sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
 
                 // Tag and push frontend image
-                sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
-                sh "docker push ${DOCKER_REGISTRY}${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+                sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+                sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
 
                 echo "Docker images pushed to Nexus successfully!"
             }
