@@ -11,6 +11,11 @@ pipeline {
         IMAGE_TAG = "${env.BUILD_NUMBER}"  // Use Jenkins build number as the tag
     }
 
+    triggers {
+        // Trigger the pipeline automatically on changes in the GitHub repository
+        githubPush()
+    }
+
     stages {
         stage('Checkout') {
             steps { 
