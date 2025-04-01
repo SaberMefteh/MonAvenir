@@ -19,7 +19,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps { 
-                echo "Checking out the source code from the Git repository..."
+                echo "Checking out the source code from the Git repository aassleema..."
                 checkout scm  // Checks out the repository defined by the pipeline's Git source
             }
         }
