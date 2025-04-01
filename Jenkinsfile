@@ -3,11 +3,11 @@ pipeline {
 
     environment {
         // Defining environment variables for ease of use
-        DOCKER_REGISTRY = "localhost:8082/repository/monavenir"  // Nexus Docker registry URL without http
+        DOCKER_REGISTRY = "localhost:8082/monavenir"  // Nexus Docker registry URL without http
         NEXUS_CREDENTIALS_ID = "nexus-credentials"  // Credentials ID for Nexus in Jenkins
         NODE_VERSION = "20"  // Node.js version for compatibility
-        IMAGE_NAME_BACKEND = "mern-elearning-backend"  // Backend Docker image name
-        IMAGE_NAME_FRONTEND = "mern-elearning-frontend"  // Frontend Docker image name
+        IMAGE_NAME_BACKEND = "backend"  // Backend Docker image name
+        IMAGE_NAME_FRONTEND = "frontend"  // Frontend Docker image name
         IMAGE_TAG = "${env.BUILD_NUMBER}"  // Use Jenkins build number as the tag
     }
 
