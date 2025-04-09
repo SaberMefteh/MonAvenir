@@ -3,12 +3,14 @@ pipeline {
 
     environment {
         // Defining environment variables for ease of use
-        DOCKER_REGISTRY = "localhost:8082/monavenir"  // Nexus Docker registry URL without http
-        NEXUS_CREDENTIALS_ID = "nexus-credentials"  // Credentials ID for Nexus in Jenkins
-        NODE_VERSION = "22"  // Node.js version for compatibility
-        IMAGE_NAME_BACKEND = "backend"  // Backend Docker image name
-        IMAGE_NAME_FRONTEND = "frontend"  // Frontend Docker image name
-        IMAGE_TAG = "${env.BUILD_NUMBER}"  // Use Jenkins build number as the tag
+        DOCKER_REGISTRY = "localhost:8082/monavenir"  
+        NEXUS_CREDENTIALS_ID = "nexus-credentials"  
+        NODE_VERSION = "22"  
+        IMAGE_NAME_BACKEND = "backend"  
+        IMAGE_NAME_FRONTEND = "frontend" 
+        IMAGE_TAG = "${env.BUILD_NUMBER}" 
+        SONARQUBE_URL = "http://localhost:9000"  
+        SONARQUBE_TOKEN = "squ_986fb332547bf5a06e978c42b3a481d4ca2247bd"  
     }
 
     triggers {
@@ -48,60 +50,32 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
-            steps {
-                echo "Building Docker images for backend and frontend..."
 
-                // Build backend Docker image
+
+
+
+        
+        stage('SonarQube Analysis') {
+            steps {
+                echo "Running SonarQube analysis..."
+
+                // Run SonarQube analysis for both frontend and backend
                 dir('server') {
-                    echo "Building backend Docker image..."
-                    sh "docker build -t ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ."
+                    withSonarQubeEnv('SonarQube') {  // 'SonarQube' is the SonarQube server configured in Jenkins
+                        sh "sonar-scanner -Dsonar.projectKey=backend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN}"
+                    }
                 }
 
-                // Build frontend Docker image
                 dir('frontend') {
-                    echo "Building frontend Docker image..."
-                    sh "docker build -t ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ."
+                    withSonarQubeEnv('SonarQube') {
+                        sh "sonar-scanner -Dsonar.projectKey=frontend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN}"
+                    }
                 }
 
-                echo "Docker images built successfully!"
+                echo "SonarQube analysis completed!"
             }
         }
 
-        stage('Push Docker Images to Nexus') {
-            steps {
-                echo "Pushing Docker images to Nexus repository..."
 
-                // Login to Nexus Docker registry
-                withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}", 
-                        usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
-                    sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USERNAME} --password-stdin ${DOCKER_REGISTRY}"
-                }
 
-                // Tag and push backend image
-                sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
-                sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
-
-                // Tag and push frontend image
-                sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
-                sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
-
-                echo "Docker images pushed to Nexus successfully!"
-            }
-        }
-    }
-
-    post {
-        always {
-            // Cleanup: Logout from Docker registry
-            sh "docker logout ${DOCKER_REGISTRY}"
-            echo "Pipeline execution completed."
-        }
-        success {
-            echo "Pipeline completed successfully!"
-        }
-        failure {
-            echo "Pipeline failed. Check the logs for details."
-        }
-    }
-}
+        
