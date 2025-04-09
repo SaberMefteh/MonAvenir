@@ -8,7 +8,7 @@ pipeline {
         NODE_VERSION = "22"  
         IMAGE_NAME_BACKEND = "backend"  
         IMAGE_NAME_FRONTEND = "frontend" 
-        IMAGE_TAG = "${env.BUILD_NUMBER}" 
+        IMAGE_TAG = "latest" 
         SONARQUBE_URL = "http://sonarqube-custom:9000"
         // Use credentials instead of hard-coded token
         SONARQUBE_TOKEN = credentials('SonarQubeCredential')
