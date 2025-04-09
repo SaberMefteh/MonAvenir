@@ -68,7 +68,7 @@ pipeline {
                     }
                 }
 
-                echo "SonarQube analysis completed!"
+                echo "SonarQube analysis is completed!"
             }
         }
         
