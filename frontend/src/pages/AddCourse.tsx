@@ -89,7 +89,7 @@ const AddCourse: React.FC = () => {
       navigate('/courses');
     } catch (error: any) {
       console.error('Error creating course:', error);
-      toast.error(error.message || 'Failed to create course');
+      toast.error(error.message || 'Failed to create course , check and try again');
     } finally {
       setLoading(false);
     }
