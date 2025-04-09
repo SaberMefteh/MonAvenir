@@ -6,7 +6,8 @@
   "scripts": {
     "test": "mocha",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "build" : "no build needed for the backend"
   },
   "keywords": [], 
   "author": "",
