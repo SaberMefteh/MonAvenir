@@ -10,7 +10,8 @@ pipeline {
         IMAGE_NAME_FRONTEND = "frontend" 
         IMAGE_TAG = "${env.BUILD_NUMBER}" 
         SONARQUBE_URL = "http://localhost:9000"  
-        SONARQUBE_TOKEN = "squ_986fb332547bf5a06e978c42b3a481d4ca2247bd"  
+        // Use credentials instead of hard-coded token
+        SONARQUBE_TOKEN = credentials('SonarQubeCredential')
     }
 
     triggers {
@@ -21,7 +22,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps { 
-                echo "Checking out the source code from the Git repository aassleema..."
+                echo "Checking out the source code from the Git repository..."
                 checkout scm  // Checks out the repository defined by the pipeline's Git source
             }
         }
@@ -49,11 +50,6 @@ pipeline {
                 echo "Build stage completed successfully!"
             }
         }
-
-
-
-
-
         
         stage('SonarQube Analysis') {
             steps {
@@ -62,20 +58,19 @@ pipeline {
                 // Run SonarQube analysis for both frontend and backend
                 dir('server') {
                     withSonarQubeEnv('SonarQube') {  // 'SonarQube' is the SonarQube server configured in Jenkins
-                        sh "sonar-scanner -Dsonar.projectKey=backend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN}"
+                        sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=backend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN}"
                     }
                 }
 
                 dir('frontend') {
                     withSonarQubeEnv('SonarQube') {
-                        sh "sonar-scanner -Dsonar.projectKey=frontend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN}"
+                        sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=frontend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN}"
                     }
                 }
 
                 echo "SonarQube analysis completed!"
             }
         }
-
         
         stage('Build Docker Images') {
             steps {
@@ -134,6 +129,3 @@ pipeline {
         }
     }
 }
-
-
-        
