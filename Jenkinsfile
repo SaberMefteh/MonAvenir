@@ -9,7 +9,7 @@ pipeline {
         IMAGE_NAME_BACKEND = "backend"  
         IMAGE_NAME_FRONTEND = "frontend" 
         IMAGE_TAG = "${env.BUILD_NUMBER}" 
-        SONARQUBE_URL = "http://localhost:9000"  
+        SONARQUBE_URL = "http://sonarqube-custom:9000"
         // Use credentials instead of hard-coded token
         SONARQUBE_TOKEN = credentials('SonarQubeCredential')
     }
