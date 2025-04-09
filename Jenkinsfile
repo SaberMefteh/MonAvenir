@@ -76,6 +76,64 @@ pipeline {
             }
         }
 
+        
+        stage('Build Docker Images') {
+            steps {
+                echo "Building Docker images for backend and frontend..."
+
+                // Build backend Docker image
+                dir('server') {
+                    echo "Building backend Docker image..."
+                    sh "docker build -t ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ."
+                }
+
+                // Build frontend Docker image
+                dir('frontend') {
+                    echo "Building frontend Docker image..."
+                    sh "docker build -t ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ."
+                }
+
+                echo "Docker images built successfully!"
+            }
+        }
+
+        stage('Push Docker Images to Nexus') {
+            steps {
+                echo "Pushing Docker images to Nexus repository..."
+
+                // Login to Nexus Docker registry
+                withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}", 
+                        usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
+                    sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USERNAME} --password-stdin ${DOCKER_REGISTRY}"
+                }
+
+                // Tag and push backend image
+                sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+                sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+
+                // Tag and push frontend image
+                sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+                sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+
+                echo "Docker images pushed to Nexus successfully!"
+            }
+        }
+    }
+
+    post {
+        always {
+            // Cleanup: Logout from Docker registry
+            sh "docker logout ${DOCKER_REGISTRY}"
+            echo "Pipeline execution completed."
+        }
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check the logs for details."
+        }
+    }
+}
 
 
         
