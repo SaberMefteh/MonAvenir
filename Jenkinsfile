@@ -2,136 +2,165 @@ pipeline {
     agent any
 
     environment {
-        // Docker & Nexus config
-        DOCKER_REGISTRY = "localhost:8082/monavenir"
-        NEXUS_CREDENTIALS_ID = "nexus-credentials"
-       
-        // Node version
-        NODE_VERSION = "22"
-       
-        // Docker image settings
-        IMAGE_NAME_BACKEND = "backend"
+        // Defining environment variables for ease of use
+        DOCKER_REGISTRY = "localhost:8082/monavenir"  
+        NEXUS_CREDENTIALS_ID = "nexus-credentials"  
+        NODE_VERSION = "22"  
+        IMAGE_NAME_BACKEND = "backend"  
         IMAGE_NAME_FRONTEND = "frontend"
         IMAGE_TAG = "latest"
-       
-        // SonarQube
         SONARQUBE_URL = "http://sonarqube-custom:9000"
+        // Use credentials instead of hard-coded token
         SONARQUBE_TOKEN = credentials('SonarQubeCredential')
-       
-        // Azure
+        // Azure deployment variables
         AZURE_CREDENTIALS_ID = "AzureCredential"
-        RESOURCE_GROUP = "PFE"
         BACKEND_APP_NAME = "monavenir-backend"
         FRONTEND_APP_NAME = "monavenir-frontend"
-        DOCKER_REGISTRY_URL = "https://localhost:8082"
+        RESOURCE_GROUP = "PFE"
+        
     }
 
     triggers {
+        // Trigger the pipeline automatically on changes in the GitHub repository
         githubPush()
     }
 
     stages {
-
-        stage('Build Application') {
+        stage('Checkout') {
             steps {
-                
-                echo "Checking out source code..."
-                checkout scm
-                
-                echo "Building backend and frontend..."
-                dir('server') {
-                    sh "npm install"
-                    sh "npm run build"
-                }
-                dir('frontend') {
-                    sh "npm install"
-                    sh "npm run build"
-                }
+                echo "Checking out the source code from the Git repository..."
+                checkout scm  // Checks out the repository defined by the pipeline's Git source
             }
         }
 
+        stage('Build Application') {
+            steps {
+                echo "Starting the build process for the MERN e-learning platform..."
+
+                // Install and build backend
+                dir('server') {
+                    echo "Installing backend dependencies..."
+                    sh "npm install"
+                    echo "Building backend application..."
+                    sh "npm run build"
+                }
+
+                // Install and build frontend
+                dir('frontend') {
+                    echo "Installing frontend dependencies..."
+                    sh "npm install"
+                    echo "Building frontend application..."
+                    sh "npm run build"
+                }
+
+                echo "Build stage completed successfully!"
+            }
+        }
+       
         stage('SonarQube Analysis') {
             steps {
                 echo "Running SonarQube analysis..."
+
+                // Run SonarQube analysis for both frontend and backend
                 dir('server') {
-                    withSonarQubeEnv('SonarQube') {
+                    withSonarQubeEnv('SonarQube') {  // 'SonarQube' is the SonarQube server configured in Jenkins
                         sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=server -Dsonar.sources=. -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -X"
                     }
                 }
+
                 dir('frontend') {
                     withSonarQubeEnv('SonarQube') {
                         sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=frontend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -X"
                     }
                 }
+
+                echo "SonarQube analysis is completed!"
             }
         }
-
+       
         stage('Build Docker Images') {
             steps {
-                echo "Building Docker images..."
+                echo "Building Docker images for backend and frontend..."
+
+                // Build backend Docker image
                 dir('server') {
+                    echo "Building backend Docker image..."
                     sh "docker build -t ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ."
                 }
+
+                // Build frontend Docker image
                 dir('frontend') {
+                    echo "Building frontend Docker image..."
                     sh "docker build -t ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ."
                 }
+
+                echo "Docker images built successfully!"
             }
         }
 
         stage('Push Docker Images to Nexus') {
             steps {
-                echo "Pushing images to Nexus..."
-                withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}", usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
+                echo "Pushing Docker images to Nexus repository..."
+
+                // Login to Nexus Docker registry
+                withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}",
+                        usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
                     sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USERNAME} --password-stdin ${DOCKER_REGISTRY}"
-
-                    // Push backend
-                    sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
-                    sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
-
-                    // Push frontend
-                    sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
-                    sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
                 }
+
+                // Tag and push backend image
+                sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+                sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+
+                // Tag and push frontend image
+                sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+                sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+
+                echo "Docker images pushed to Nexus successfully!"
             }
         }
-
+       
         stage('Deploy to Azure App Service') {
             steps {
-                echo "Deploying Docker images to Azure App Services from Nexus..."
-
-                withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}", usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD'),
-                                 usernamePassword(credentialsId: "${AZURE_CREDENTIALS_ID}", usernameVariable: 'AZURE_CLIENT_ID', passwordVariable: 'AZURE_SECRET')]) {
-
+                echo "Deploying to Azure App Service..."
+               
+                withCredentials([azureServicePrincipal(credentialsId: "${AZURE_CREDENTIALS_ID}",
+                                                      subscriptionIdVariable: 'AZURE_SUBSCRIPTION_ID',
+                                                      clientIdVariable: 'AZURE_CLIENT_ID',
+                                                      clientSecretVariable: 'AZURE_CLIENT_SECRET',
+                                                      tenantIdVariable: 'AZURE_TENANT_ID')]) {
+                   
                     // Login to Azure
+                    sh '''
+                        az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET -t $AZURE_TENANT_ID
+                        az account set -s $AZURE_SUBSCRIPTION_ID
+                    '''
+                   
+                    // Deploy backend to Azure App Service using container image from Nexus
                     sh """
-                    az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_SECRET --tenant dbd6664d-4eb9-46eb-99d8-5c43ba153c61
-                    """
-
-                    // Deploy backend
-                    sh """
-                    az webapp config container set \
-                        --name ${BACKEND_APP_NAME} \
-                        --resource-group ${RESOURCE_GROUP} \
+                        az webapp config container set --name ${BACKEND_APP_NAME} --resource-group ${RESOURCE_GROUP} \
                         --docker-custom-image-name ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG} \
-                        --docker-registry-server-url ${DOCKER_REGISTRY_URL} \
-                        --docker-registry-server-user $NEXUS_USERNAME \
-                        --docker-registry-server-password $NEXUS_PASSWORD
+                        --docker-registry-server-url https://${DOCKER_REGISTRY} \
+                        --docker-registry-server-user \${NEXUS_USERNAME} \
+                        --docker-registry-server-password \${NEXUS_PASSWORD}
                     """
-
-                    // Deploy frontend
+                   
+                    // Deploy frontend to Azure App Service using container image from Nexus
                     sh """
-                    az webapp config container set \
-                        --name ${FRONTEND_APP_NAME} \
-                        --resource-group ${RESOURCE_GROUP} \
+                        az webapp config container set --name ${FRONTEND_APP_NAME} --resource-group ${RESOURCE_GROUP} \
                         --docker-custom-image-name ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} \
-                        --docker-registry-server-url ${DOCKER_REGISTRY_URL} \
-                        --docker-registry-server-user $NEXUS_USERNAME \
-                        --docker-registry-server-password $NEXUS_PASSWORD
+                        --docker-registry-server-url https://${DOCKER_REGISTRY} \
+                        --docker-registry-server-user \${NEXUS_USERNAME} \
+                        --docker-registry-server-password \${NEXUS_PASSWORD}
                     """
-
-                    // Restart apps (optional)
-                    sh "az webapp restart --name ${BACKEND_APP_NAME} --resource-group ${RESOURCE_GROUP}"
-                    sh "az webapp restart --name ${FRONTEND_APP_NAME} --resource-group ${RESOURCE_GROUP}"
+                   
+                    // Restart both web apps to apply changes
+                    sh """
+                        az webapp restart --name ${BACKEND_APP_NAME} --resource-group ${RESOURCE_GROUP}
+                        az webapp restart --name ${FRONTEND_APP_NAME} --resource-group ${RESOURCE_GROUP}
+                    """
+                   
+                    echo "Deployment to Azure App Service completed successfully!"
                 }
             }
         }
@@ -139,14 +168,19 @@ pipeline {
 
     post {
         always {
+            // Cleanup: Logout from Docker registry and Azure
             sh "docker logout ${DOCKER_REGISTRY}"
-            echo "Pipeline finished (cleanup done)."
+            sh "az logout"
+            echo "Pipeline execution completed."
         }
         success {
-            echo " Pipeline completed successfully!"
+            echo "Pipeline completed successfully!"
         }
         failure {
-            echo " Pipeline failed. Please check the logs!"
+            echo "Pipeline failed. Check the logs for details."
         }
     }
 }
+
+
+
