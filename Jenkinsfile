@@ -13,11 +13,9 @@ pipeline {
         // Use credentials instead of hard-coded token
         SONARQUBE_TOKEN = credentials('SonarQubeCredential')
         // Azure deployment variables
-        AZURE_CREDENTIALS_ID = "AzureCredential"
         BACKEND_APP_NAME = "monavenir-backend"
         FRONTEND_APP_NAME = "monavenir-frontend"
         RESOURCE_GROUP = "PFE"
-        
     }
 
     triggers {
@@ -56,7 +54,7 @@ pipeline {
                 echo "Build stage completed successfully!"
             }
         }
-       
+
         stage('SonarQube Analysis') {
             steps {
                 echo "Running SonarQube analysis..."
@@ -77,7 +75,7 @@ pipeline {
                 echo "SonarQube analysis is completed!"
             }
         }
-       
+
         stage('Build Docker Images') {
             steps {
                 echo "Building Docker images for backend and frontend..."
@@ -119,49 +117,42 @@ pipeline {
                 echo "Docker images pushed to Nexus successfully!"
             }
         }
-       
+
         stage('Deploy to Azure App Service') {
             steps {
                 echo "Deploying to Azure App Service..."
-               
-                withCredentials([azureServicePrincipal(credentialsId: "${AZURE_CREDENTIALS_ID}",
-                                                      subscriptionIdVariable: 'AZURE_SUBSCRIPTION_ID',
-                                                      clientIdVariable: 'AZURE_CLIENT_ID',
-                                                      clientSecretVariable: 'AZURE_CLIENT_SECRET',
-                                                      tenantIdVariable: 'AZURE_TENANT_ID')]) {
-                   
-                    // Login to Azure
-                    sh '''
-                        az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET -t $AZURE_TENANT_ID
-                        az account set -s $AZURE_SUBSCRIPTION_ID
-                    '''
-                   
-                    // Deploy backend to Azure App Service using container image from Nexus
-                    sh """
-                        az webapp config container set --name ${BACKEND_APP_NAME} --resource-group ${RESOURCE_GROUP} \
-                        --docker-custom-image-name ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG} \
-                        --docker-registry-server-url https://${DOCKER_REGISTRY} \
-                        --docker-registry-server-user \${NEXUS_USERNAME} \
-                        --docker-registry-server-password \${NEXUS_PASSWORD}
-                    """
-                   
-                    // Deploy frontend to Azure App Service using container image from Nexus
-                    sh """
-                        az webapp config container set --name ${FRONTEND_APP_NAME} --resource-group ${RESOURCE_GROUP} \
-                        --docker-custom-image-name ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} \
-                        --docker-registry-server-url https://${DOCKER_REGISTRY} \
-                        --docker-registry-server-user \${NEXUS_USERNAME} \
-                        --docker-registry-server-password \${NEXUS_PASSWORD}
-                    """
-                   
-                    // Restart both web apps to apply changes
-                    sh """
-                        az webapp restart --name ${BACKEND_APP_NAME} --resource-group ${RESOURCE_GROUP}
-                        az webapp restart --name ${FRONTEND_APP_NAME} --resource-group ${RESOURCE_GROUP}
-                    """
-                   
-                    echo "Deployment to Azure App Service completed successfully!"
-                }
+
+                // Azure CLI interactive login (no service principal)
+                sh '''
+                    az login
+                    az account set --subscription e9ae547c-851b-4bd7-bacc-e72bb89c1221
+                '''
+
+                // Deploy backend to Azure App Service using container image from Nexus
+                sh """
+                    az webapp config container set --name ${BACKEND_APP_NAME} --resource-group ${RESOURCE_GROUP} \
+                    --docker-custom-image-name ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG} \
+                    --docker-registry-server-url https://${DOCKER_REGISTRY} \
+                    --docker-registry-server-user \${NEXUS_USERNAME} \
+                    --docker-registry-server-password \${NEXUS_PASSWORD}
+                """
+
+                // Deploy frontend to Azure App Service using container image from Nexus
+                sh """
+                    az webapp config container set --name ${FRONTEND_APP_NAME} --resource-group ${RESOURCE_GROUP} \
+                    --docker-custom-image-name ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} \
+                    --docker-registry-server-url https://${DOCKER_REGISTRY} \
+                    --docker-registry-server-user \${NEXUS_USERNAME} \
+                    --docker-registry-server-password \${NEXUS_PASSWORD}
+                """
+
+                // Restart both web apps to apply changes
+                sh """
+                    az webapp restart --name ${BACKEND_APP_NAME} --resource-group ${RESOURCE_GROUP}
+                    az webapp restart --name ${FRONTEND_APP_NAME} --resource-group ${RESOURCE_GROUP}
+                """
+
+                echo "Deployment to Azure App Service completed successfully!"
             }
         }
     }
@@ -181,6 +172,3 @@ pipeline {
         }
     }
 }
-
-
-
