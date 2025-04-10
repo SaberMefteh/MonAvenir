@@ -79,7 +79,7 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
       }
       return src;
     } catch (error) {
-      console.error('Error fixing source URL:', error);
+      console.error('Error fixing source URL ', error);
       setHasError(true);
       setErrorDetails('Invalid source URL');
       return '';
