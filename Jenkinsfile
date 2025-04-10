@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Docker & Nexus config
-        DOCKER_REGISTRY = "your-nexus-domain:8082/monavenir"
+        DOCKER_REGISTRY = "localhost:8082/monavenir"
         NEXUS_CREDENTIALS_ID = "nexus-credentials"
        
         // Node version
@@ -19,8 +19,8 @@ pipeline {
         SONARQUBE_TOKEN = credentials('SonarQubeCredential')
        
         // Azure
-        AZURE_CREDENTIALS_ID = "azure-service-principal"
-        RESOURCE_GROUP = "your-resource-group"
+        AZURE_CREDENTIALS_ID = "AzureCredential"
+        RESOURCE_GROUP = "PFE"
         BACKEND_APP_NAME = "monavenir-backend"
         FRONTEND_APP_NAME = "monavenir-frontend"
         DOCKER_REGISTRY_URL = "https://your-nexus-domain:8082"
@@ -31,15 +31,13 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                echo "Checking out source code..."
-                checkout scm
-            }
-        }
 
         stage('Build Application') {
             steps {
+                
+                echo "Checking out source code..."
+                checkout scm
+                
                 echo "Building backend and frontend..."
                 dir('server') {
                     sh "npm install"
