@@ -23,7 +23,7 @@ pipeline {
         RESOURCE_GROUP = "PFE"
         BACKEND_APP_NAME = "monavenir-backend"
         FRONTEND_APP_NAME = "monavenir-frontend"
-        DOCKER_REGISTRY_URL = "https://your-nexus-domain:8082"
+        DOCKER_REGISTRY_URL = "https://localhost:8082"
     }
 
     triggers {
@@ -104,7 +104,7 @@ pipeline {
 
                     // Login to Azure
                     sh """
-                    az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_SECRET --tenant your-tenant-id
+                    az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_SECRET --tenant dbd6664d-4eb9-46eb-99d8-5c43ba153c61
                     """
 
                     // Deploy backend
