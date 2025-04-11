@@ -118,42 +118,37 @@ pipeline {
             }
         }
 
-        stage('Deploy to Azure App Service') {
+     stage('Deploy to Azure App Service') {
             steps {
-                echo "Deploying Docker containers to Azure App Services..."
+                script {
+                    // Perform manual login (interactive login)
+                    sh 'az login --username <your-azure-username> --password <your-azure-password>'
 
-                withCredentials([usernamePassword(
-                    credentialsId: 'nexus-credentials', 
-                    usernameVariable: 'NEXUS_USERNAME', 
-                    passwordVariable: 'NEXUS_PASSWORD'
-                )]) {
-                    // Backend deployment
+                    // Deploy Backend
                     sh """
                     az webapp config container set \
                         --name $BACKEND_APP_NAME \
                         --resource-group $RESOURCE_GROUP \
-                        --docker-custom-image-name 1bee-102-157-177-210.ngrok-free.app/monavenir/backend:$IMAGE_TAG \
-                        --docker-registry-server-url https://1bee-102-157-177-210.ngrok-free.app \
-                        --docker-registry-server-user $NEXUS_USERNAME \
-                        --docker-registry-server-password $NEXUS_PASSWORD
+                        --container-image-name $DOCKER_REGISTRY/backend:$IMAGE_TAG \
+                        --container-registry-url https://1bee-102-157-177-210.ngrok-free.app \
+                        --container-registry-user ${NEXUS_USERNAME} \
+                        --container-registry-password ${NEXUS_PASSWORD}
                     """
 
-                    // Frontend deployment
+                    // Deploy Frontend
                     sh """
                     az webapp config container set \
                         --name $FRONTEND_APP_NAME \
                         --resource-group $RESOURCE_GROUP \
-                        --docker-custom-image-name 1bee-102-157-177-210.ngrok-free.app/monavenir/frontend:$IMAGE_TAG \
-                        --docker-registry-server-url https://1bee-102-157-177-210.ngrok-free.app \
-                        --docker-registry-server-user $NEXUS_USERNAME \
-                        --docker-registry-server-password $NEXUS_PASSWORD
+                        --container-image-name $DOCKER_REGISTRY/frontend:$IMAGE_TAG \
+                        --container-registry-url https://1bee-102-157-177-210.ngrok-free.app \
+                        --container-registry-user ${NEXUS_USERNAME} \
+                        --container-registry-password ${NEXUS_PASSWORD}
                     """
                 }
-
-                echo "Azure deployment completed!"
             }
         }
-    }
+
 
     post {
         always {
