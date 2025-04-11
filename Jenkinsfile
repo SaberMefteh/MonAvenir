@@ -122,7 +122,7 @@ pipeline {
             steps {
                 script {
                     // Perform manual login (interactive login)
-                    sh 'az login --username <your-azure-username> --password <your-azure-password>'
+                    sh 'az login --username saber.mefteh@isima.u-monastir.tn --password DevOps_PFE2025'
 
                     // Deploy Backend
                     sh """
