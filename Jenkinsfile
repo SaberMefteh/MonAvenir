@@ -66,7 +66,7 @@ pipeline {
                     echo "Building frontend Docker image..."
                     sh "docker build -t ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ."
                 }
-f
+
                 echo "Docker images built successfully!"
             }
         }
