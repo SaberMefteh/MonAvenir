@@ -50,7 +50,27 @@ pipeline {
         }
 
 
+
         
+         stage('SonarQube Analysis') {
+            steps {
+                echo "Running SonarQube analysis..."
+
+                dir('server') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=server -Dsonar.sources=. -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -X"
+                    }
+                }
+
+                dir('frontend') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=frontend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -X"
+                    }
+                }
+
+                echo "SonarQube analysis is completed!"
+            }
+        }     
 
 
        
@@ -97,37 +117,44 @@ pipeline {
             }
         }
 
+
+
+
+
         stage('Deploy to Azure App Service') {
-            steps {
-                script {
-                    sh 'az login --username saber.mefteh@isima.u-monastir.tn --password DevOps_PFE2025'
+    steps {
+        script {
+            withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}",
+                    usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
 
-                    withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}",
-                            usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
+                // Corrected registry URL syntax
+                sh """
+                az webapp config container set \
+                    --name $BACKEND_APP_NAME \
+                    --resource-group $RESOURCE_GROUP \
+                    --container-image-name $DOCKER_REGISTRY/${IMAGE_NAME_BACKEND}:${IMAGE_TAG} \
+                    --container-registry-url ${DOCKER_REGISTRY} \
+                    --container-registry-user ${NEXUS_USERNAME} \
+                    --container-registry-password ${NEXUS_PASSWORD}
+                """
 
-                        sh """
-                        az webapp config container set \
-                            --name $BACKEND_APP_NAME \
-                            --resource-group $RESOURCE_GROUP \
-                            --container-image-name $DOCKER_REGISTRY/backend:$IMAGE_TAG \
-                            --container-registry-url {$DOCKER_REGISTRY} \
-                            --container-registry-user ${NEXUS_USERNAME} \
-                            --container-registry-password ${NEXUS_PASSWORD}
-                        """
-
-                        sh """
-                        az webapp config container set \
-                            --name $FRONTEND_APP_NAME \
-                            --resource-group $RESOURCE_GROUP \
-                            --container-image-name $DOCKER_REGISTRY/frontend:$IMAGE_TAG \
-                            --container-registry-url {$DOCKER_REGISTRY} \
-                            --container-registry-user ${NEXUS_USERNAME} \
-                            --container-registry-password ${NEXUS_PASSWORD}
-                        """
-                    }
-                }
+                sh """
+                az webapp config container set \
+                    --name $FRONTEND_APP_NAME \
+                    --resource-group $RESOURCE_GROUP \
+                    --container-image-name $DOCKER_REGISTRY/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} \
+                    --container-registry-url ${DOCKER_REGISTRY} \
+                    --container-registry-user ${NEXUS_USERNAME} \
+                    --container-registry-password ${NEXUS_PASSWORD}
+                """
             }
         }
+    }
+}
+
+
+
+        
     }
 
     post {
