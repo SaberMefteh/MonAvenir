@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_REGISTRY = "a71d-154-111-101-147.ngrok-free.app /monavenir"
+        DOCKER_REGISTRY = "ea91-154-111-101-147.ngrok-free.app/monavenir"
         NEXUS_CREDENTIALS_ID = "nexus-credentials"
         NODE_VERSION = "22"
         IMAGE_NAME_BACKEND = "backend"
@@ -50,6 +50,25 @@ pipeline {
         }
 
 
+         stage('SonarQube Analysis') {
+            steps {
+                echo "Running SonarQube analysis..."
+
+                dir('server') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=server -Dsonar.sources=. -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -X"
+                    }
+                }
+
+                dir('frontend') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=frontend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -X"
+                    }
+                }
+
+                echo "SonarQube analysis is completed!"
+            }
+        }
 
 
        
