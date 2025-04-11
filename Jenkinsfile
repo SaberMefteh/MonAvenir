@@ -100,7 +100,7 @@ pipeline {
                             --name $BACKEND_APP_NAME \
                             --resource-group $RESOURCE_GROUP \
                             --container-image-name $DOCKER_REGISTRY/backend:$IMAGE_TAG \
-                            --container-registry-url https://1bee-102-157-177-210.ngrok-free.app \
+                            --container-registry-url https://756b-154-111-101-147.ngrok-free.app  \
                             --container-registry-user ${NEXUS_USERNAME} \
                             --container-registry-password ${NEXUS_PASSWORD}
                         """
@@ -110,7 +110,7 @@ pipeline {
                             --name $FRONTEND_APP_NAME \
                             --resource-group $RESOURCE_GROUP \
                             --container-image-name $DOCKER_REGISTRY/frontend:$IMAGE_TAG \
-                            --container-registry-url https://1bee-102-157-177-210.ngrok-free.app \
+                            --container-registry-url https://756b-154-111-101-147.ngrok-free.app  \
                             --container-registry-user ${NEXUS_USERNAME} \
                             --container-registry-password ${NEXUS_PASSWORD}
                         """
