@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_REGISTRY = "https://9308-154-111-101-147.ngrok-free.app "
+        DOCKER_REGISTRY = "https://9308-154-111-101-147.ngrok-free.app"
         NEXUS_CREDENTIALS_ID = "nexus-credentials"
         NODE_VERSION = "22"
         IMAGE_NAME_BACKEND = "backend"
@@ -66,7 +66,7 @@ pipeline {
                     echo "Building frontend Docker image..."
                     sh "docker build -t ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ."
                 }
-
+f
                 echo "Docker images built successfully!"
             }
         }
