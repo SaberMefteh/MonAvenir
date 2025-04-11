@@ -10,8 +10,8 @@ pipeline {
         IMAGE_TAG = "latest"
         SONARQUBE_URL = "http://sonarqube-custom:9000"
         SONARQUBE_TOKEN = credentials('SonarQubeCredential')
-        BACKEND_APP_NAME = "monavenir-backend"
-        FRONTEND_APP_NAME = "monavenir-frontend"
+        BACKEND_APP_NAME = "monAvenir"           
+        FRONTEND_APP_NAME = "monavenirFront"     
         RESOURCE_GROUP = "PFE"
     }
 
@@ -49,26 +49,7 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                echo "Running SonarQube analysis..."
-
-                dir('server') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=server -Dsonar.sources=. -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -X"
-                    }
-                }
-
-                dir('frontend') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=frontend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -X"
-                    }
-                }
-
-                echo "SonarQube analysis is completed!"
-            }
-        }
-
+      
         stage('Build Docker Images') {
             steps {
                 echo "Building Docker images for backend and frontend..."
