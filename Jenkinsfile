@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Defining environment variables for ease of use
-        DOCKER_REGISTRY = "localhost:8082/monavenir"  
+        DOCKER_REGISTRY = "1bee-102-157-177-210.ngrok-free.app/monavenir"  
         NEXUS_CREDENTIALS_ID = "nexus-credentials"  
         NODE_VERSION = "22"  
         IMAGE_NAME_BACKEND = "backend"  
@@ -117,45 +117,42 @@ pipeline {
                 echo "Docker images pushed to Nexus successfully!"
             }
         }
+stage('Deploy to Azure App Service') {
+    steps {
+        echo "Deploying Docker containers to Azure App Services..."
 
-        stage('Deploy to Azure App Service') {
-            steps {
-                echo "Deploying to Azure App Service..."
+        withCredentials([usernamePassword(
+            credentialsId: 'nexus-credentials', 
+            usernameVariable: 'NEXUS_USERNAME', 
+            passwordVariable: 'NEXUS_PASSWORD'
+        )]) {
+            // Backend deployment
+            sh """
+            az webapp config container set \
+                --name $BACKEND_APP_NAME \
+                --resource-group $RESOURCE_GROUP \
+                --docker-custom-image-name 1bee-102-157-177-210.ngrok-free.app/monavenir/backend:$IMAGE_TAG \
+                --docker-registry-server-url https://1bee-102-157-177-210.ngrok-free.app \
+                --docker-registry-server-user $NEXUS_USERNAME \
+                --docker-registry-server-password $NEXUS_PASSWORD
+            """
 
-                // Azure CLI interactive login (no service principal)
-                sh '''
-                    az login
-                    az account set --subscription e9ae547c-851b-4bd7-bacc-e72bb89c1221
-                '''
-
-                // Deploy backend to Azure App Service using container image from Nexus
-                sh """
-                    az webapp config container set --name ${BACKEND_APP_NAME} --resource-group ${RESOURCE_GROUP} \
-                    --docker-custom-image-name ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG} \
-                    --docker-registry-server-url https://${DOCKER_REGISTRY} \
-                    --docker-registry-server-user \${NEXUS_USERNAME} \
-                    --docker-registry-server-password \${NEXUS_PASSWORD}
-                """
-
-                // Deploy frontend to Azure App Service using container image from Nexus
-                sh """
-                    az webapp config container set --name ${FRONTEND_APP_NAME} --resource-group ${RESOURCE_GROUP} \
-                    --docker-custom-image-name ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} \
-                    --docker-registry-server-url https://${DOCKER_REGISTRY} \
-                    --docker-registry-server-user \${NEXUS_USERNAME} \
-                    --docker-registry-server-password \${NEXUS_PASSWORD}
-                """
-
-                // Restart both web apps to apply changes
-                sh """
-                    az webapp restart --name ${BACKEND_APP_NAME} --resource-group ${RESOURCE_GROUP}
-                    az webapp restart --name ${FRONTEND_APP_NAME} --resource-group ${RESOURCE_GROUP}
-                """
-
-                echo "Deployment to Azure App Service completed successfully!"
-            }
+            // Frontend deployment
+            sh """
+            az webapp config container set \
+                --name $FRONTEND_APP_NAME \
+                --resource-group $RESOURCE_GROUP \
+                --docker-custom-image-name 1bee-102-157-177-210.ngrok-free.app/monavenir/frontend:$IMAGE_TAG \
+                --docker-registry-server-url https://1bee-102-157-177-210.ngrok-free.app \
+                --docker-registry-server-user $NEXUS_USERNAME \
+                --docker-registry-server-password $NEXUS_PASSWORD
+            """
         }
+
+        echo "Azure deployment completed!"
     }
+}
+
 
     post {
         always {
