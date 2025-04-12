@@ -121,37 +121,52 @@ pipeline {
 
 
 
-         stage('Deploy to Azure App Service') {
+            stage('Deploy to Azure App Service') {
             steps {
                 script {
-                    sh 'az login --username saber.mefteh@isima.u-monastir.tn --password DevOps_PFE2025'
-
-                    withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}",
-                            usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
-
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'Azure',
+                            usernameVariable: 'AZURE_USER',
+                            passwordVariable: 'AZURE_PASSWORD'
+                        ),
+                        usernamePassword(
+                            credentialsId: "${NEXUS_CREDENTIALS_ID}",
+                            usernameVariable: 'NEXUS_USERNAME',
+                            passwordVariable: 'NEXUS_PASSWORD'
+                        )
+                    ]) {
+                        // Authenticate to Azure
+                        sh '''
+                            az login --username "$AZURE_USER" --password "$AZURE_PASSWORD"
+                        '''
+        
+                        // Deploy Backend
                         sh """
-                        az webapp config container set \
-                            --name $BACKEND_APP_NAME \
-                            --resource-group $RESOURCE_GROUP \
-                            --container-image-name $DOCKER_REGISTRY/backend:$IMAGE_TAG \
-                            --container-registry-url {$DOCKER_REGISTRY} \
-                            --container-registry-user ${NEXUS_USERNAME} \
-                            --container-registry-password ${NEXUS_PASSWORD}
+                            az webapp config container set \
+                                --name $BACKEND_APP_NAME \
+                                --resource-group $RESOURCE_GROUP \
+                                --container-image-name $DOCKER_REGISTRY/${IMAGE_NAME_BACKEND}:${IMAGE_TAG} \
+                                --container-registry-url ${DOCKER_REGISTRY} \
+                                --container-registry-user ${NEXUS_USERNAME} \
+                                --container-registry-password ${NEXUS_PASSWORD}
                         """
-
+        
+                        // Deploy Frontend
                         sh """
-                        az webapp config container set \
-                            --name $FRONTEND_APP_NAME \
-                            --resource-group $RESOURCE_GROUP \
-                            --container-image-name $DOCKER_REGISTRY/frontend:$IMAGE_TAG \
-                            --container-registry-url {$DOCKER_REGISTRY} \
-                            --container-registry-user ${NEXUS_USERNAME} \
-                            --container-registry-password ${NEXUS_PASSWORD}
+                            az webapp config container set \
+                                --name $FRONTEND_APP_NAME \
+                                --resource-group $RESOURCE_GROUP \
+                                --container-image-name $DOCKER_REGISTRY/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} \
+                                --container-registry-url ${DOCKER_REGISTRY} \
+                                --container-registry-user ${NEXUS_USERNAME} \
+                                --container-registry-password ${NEXUS_PASSWORD}
                         """
                     }
                 }
             }
         }
+        
     }
 
 
