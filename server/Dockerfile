@@ -16,8 +16,8 @@ ENV JWT_SECRET="763e46fe3070c4042233510c187eb17bb0af4d4ba2f50d67e9aa9bdf65ab5c7d
 # Copy source code
 COPY . .
 
-# Expose port 5000
-EXPOSE 5000
+# Expose port 80
+EXPOSE 80
 
 # Start the application
 CMD ["npm", "start"]
