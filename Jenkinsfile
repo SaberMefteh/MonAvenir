@@ -48,32 +48,7 @@ pipeline {
                 echo "Build stage completed successfully!"
             }
         }
-
-
-
-        
-         stage('SonarQube Analysis') {
-            steps {
-                echo "Running SonarQube analysis..."
-
-                dir('server') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=server -Dsonar.sources=. -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -X"
-                    }
-                }
-
-                dir('frontend') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.projectKey=frontend -Dsonar.sources=src -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -X"
-                    }
-                }
-
-                echo "SonarQube analysis is completed!"
-            }
-        }     
-
-
-       
+ 
 
 
         
