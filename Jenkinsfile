@@ -101,7 +101,7 @@ stage('SonarQube Analysis') {
                 withCredentials([usernamePassword(credentialsId: "${NEXUS_CREDENTIALS_ID}",
                         usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
 
-                    sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USERNAME} --password-stdin ${DOCKER_REGISTRY}"
+                    sh '''    echo "$NEXUS_PASSWORD" | docker login -u "$NEXUS_USERNAME" --password-stdin "$DOCKER_REGISTRY"     '''
 
                     // In Push Docker Images stage, change to:
                     sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
