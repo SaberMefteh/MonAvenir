@@ -114,7 +114,7 @@ stage('SonarQube Analysis') {
                 echo "Docker images pushed to Nexus successfully!"
             }
         }
-
+/*
 
 
 
@@ -166,9 +166,9 @@ stage('SonarQube Analysis') {
         }
         
     }
+*/
 
-
-    post {
+ /*   post {
         always {
             sh "docker logout ${DOCKER_REGISTRY}"
             sh "az logout"
@@ -181,4 +181,4 @@ stage('SonarQube Analysis') {
             echo "Pipeline failed. Check the logs for details."
         }
     }
-}
+*/}
