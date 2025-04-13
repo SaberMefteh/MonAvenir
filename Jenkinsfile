@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_REGISTRY = "localhost:8082"
+        DOCKER_REGISTRY = "6d9f-2c0f-4280-6060-d77f-d0d8-a7d9-5a9f-f5e1.ngrok-free.app"
         NEXUS_CREDENTIALS_ID = "nexus-credentials"
         NODE_VERSION = "22"
         IMAGE_NAME_BACKEND = "backend"
@@ -104,10 +104,10 @@ stage('SonarQube Analysis') {
                     sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USERNAME} --password-stdin ${DOCKER_REGISTRY}"
 
                     // In Push Docker Images stage, change to:
-                    sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/monavenir/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+                    sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
                     sh "docker push ${DOCKER_REGISTRY}/monavenir/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
                     
-                    sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/monavenir/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+                    sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
                     sh "docker push ${DOCKER_REGISTRY}/monavenir/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
                 }
 
