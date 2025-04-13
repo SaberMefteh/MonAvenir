@@ -5,8 +5,8 @@ pipeline {
         DOCKER_REGISTRY = "6d9f-2c0f-4280-6060-d77f-d0d8-a7d9-5a9f-f5e1.ngrok-free.app"
         NEXUS_CREDENTIALS_ID = "nexus-credentials"
         NODE_VERSION = "22"
-        IMAGE_NAME_BACKEND = "backend"
-        IMAGE_NAME_FRONTEND = "frontend"
+        IMAGE_NAME_BACKEND = "monavenir/backend"
+        IMAGE_NAME_FRONTEND = "monavenir/frontend"
         IMAGE_TAG = "latest"
         SONARQUBE_URL = "http://sonarqube-custom:9000"
         SONARQUBE_TOKEN = credentials('SonarQubeCredential')
@@ -105,16 +105,16 @@ stage('SonarQube Analysis') {
 
                     // In Push Docker Images stage, change to:
                     sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
-                    sh "docker push ${DOCKER_REGISTRY}/monavenir/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+                    sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
                     
                     sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
-                    sh "docker push ${DOCKER_REGISTRY}/monavenir/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+                    sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
                 }
 
                 echo "Docker images pushed to Nexus successfully!"
             }
         }
-/*
+
 
 
 
@@ -166,19 +166,6 @@ stage('SonarQube Analysis') {
         }
         
     }
-*/
 
- /*   post {
-        always {
-            sh "docker logout ${DOCKER_REGISTRY}"
-            sh "az logout"
-            echo "Pipeline execution completed."
-        }
-        success {
-            echo "Pipeline completed successfully!"
-        }
-        failure {
-            echo "Pipeline failed. Check the logs for details."
-        }
+
     }
-*/}
