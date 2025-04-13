@@ -143,7 +143,7 @@ stage('SonarQube Analysis') {
                             az webapp config container set \
                                 --name $BACKEND_APP_NAME \
                                 --resource-group $RESOURCE_GROUP \
-                                --container-image-name a806-154-111-101-147.ngrok-free.app/monavenir/backend:latest \
+                                --container-image-name $DOCKER_REGISTRY/${IMAGE_NAME_BACKEND}:${IMAGE_TAG} \
                                 --container-registry-url ${DOCKER_REGISTRY} \
                                 --container-registry-user ${NEXUS_USERNAME} \
                                 --container-registry-password ${NEXUS_PASSWORD}
@@ -154,7 +154,7 @@ stage('SonarQube Analysis') {
                             az webapp config container set \
                                 --name $FRONTEND_APP_NAME \
                                 --resource-group $RESOURCE_GROUP \
-                                --container-image-name a806-154-111-101-147.ngrok-free.app/monavenir/frontend:latest \
+                                --container-image-name $DOCKER_REGISTRY/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} \
                                 --container-registry-url ${DOCKER_REGISTRY} \
                                 --container-registry-user ${NEXUS_USERNAME} \
                                 --container-registry-password ${NEXUS_PASSWORD}
