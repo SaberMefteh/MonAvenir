@@ -33,7 +33,7 @@ app.use(mongoSanitize()); // Sanitize inputs against NoSQL injection
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'https://monavenirfront-d4hsccbngrfeaeck.canadacentral-01.azurewebsites.net',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -127,7 +127,7 @@ createUploadDirectories();
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads', {
   setHeaders: (res) => {
-    res.set('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
+    res.set('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'https://monavenirfront-d4hsccbngrfeaeck.canadacentral-01.azurewebsites.net');
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.set('Access-Control-Allow-Credentials', 'true');
