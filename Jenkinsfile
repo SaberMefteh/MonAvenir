@@ -103,11 +103,12 @@ stage('SonarQube Analysis') {
 
                     sh "echo ${NEXUS_PASSWORD} | docker login -u ${NEXUS_USERNAME} --password-stdin ${DOCKER_REGISTRY}"
 
-                    sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
-                    sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
-
-                    sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
-                    sh "docker push ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+                    // In Push Docker Images stage, change to:
+                    sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/monavenir/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+                    sh "docker push ${DOCKER_REGISTRY}/monavenir/${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+                    
+                    sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${DOCKER_REGISTRY}/monavenir/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+                    sh "docker push ${DOCKER_REGISTRY}/monavenir/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
                 }
 
                 echo "Docker images pushed to Nexus successfully!"
