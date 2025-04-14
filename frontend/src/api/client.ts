@@ -21,7 +21,7 @@ const onTokenRefreshed = (token: string) => {
 // Create axios instance
 const client = axios.create({
   // Ensure this matches exactly with your server's URL (including any trailing slashes)
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://monavenir-gbe0h2ehfxfsgjfy.canadacentral-01.azurewebsites.net',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ client.interceptors.response.use(
         try {
           // Try to get a new token using the refresh endpoint
           const response = await axios.post(
-            `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/auth/refresh-token`,
+            `${import.meta.env.VITE_API_BASE_URL || 'https://monavenir-gbe0h2ehfxfsgjfy.canadacentral-01.azurewebsites.net'}/api/auth/refresh-token`,
             {},
             { withCredentials: true }
           );
