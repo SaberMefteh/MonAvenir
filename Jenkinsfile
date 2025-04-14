@@ -7,7 +7,7 @@ pipeline {
         NODE_VERSION = "22"
         IMAGE_NAME_BACKEND = "monavenir/backend"
         IMAGE_NAME_FRONTEND = "monavenir/frontend"
-        IMAGE_TAG = "latest"
+        IMAGE_TAG = "${BUILD_NUMBER}"
         SONARQUBE_URL = "http://sonarqube-custom:9000"
         SONARQUBE_TOKEN = credentials('SonarQubeCredential')
         BACKEND_APP_NAME = "monAvenir"
@@ -119,7 +119,7 @@ stage('SonarQube Analysis') {
 
 
 
-            stage('Deploy to Azure App Service') {
+        stage('Deploy to Azure App Service') {
             steps {
                 script {
                     withCredentials([
@@ -138,13 +138,24 @@ stage('SonarQube Analysis') {
                         sh '''
                             az login --username "$AZURE_USER" --password "$AZURE_PASSWORD"
                         '''
-        
+
                         // Deploy Backend
                         sh """
                             az webapp config container set \
                                 --name $BACKEND_APP_NAME \
                                 --resource-group $RESOURCE_GROUP \
                                 --container-image-name $DOCKER_REGISTRY/${IMAGE_NAME_BACKEND}:${IMAGE_TAG} \
+                                --container-registry-url ${DOCKER_REGISTRY} \
+                                --container-registry-user ${NEXUS_USERNAME} \
+                                --container-registry-password ${NEXUS_PASSWORD}
+                        """
+
+                        // Deploy Frontend
+                        sh """
+                            az webapp config container set \
+                                --name $FRONTEND_APP_NAME \
+                                --resource-group $RESOURCE_GROUP \
+                                --container-image-name $DOCKER_REGISTRY/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} \
                                 --container-registry-url ${DOCKER_REGISTRY} \
                                 --container-registry-user ${NEXUS_USERNAME} \
                                 --container-registry-password ${NEXUS_PASSWORD}
