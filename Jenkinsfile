@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_REGISTRY = "2e40-102-157-148-23.ngrok-free.app"
+        DOCKER_REGISTRY = "81fa-102-157-148-23.ngrok-free.app"
         NEXUS_CREDENTIALS_ID = "nexus-credentials"
         NODE_VERSION = "22"
         IMAGE_NAME_BACKEND = "monavenir/backend"
