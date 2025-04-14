@@ -22,7 +22,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo "Checking out the source code from the Git repository..."
+                echo "Check out the source code from the Git repository..."
                 checkout scm
             }
         }
