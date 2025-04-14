@@ -49,7 +49,7 @@ const Contact = () => {
     <div className="min-h-screen bg-gray-50">
       <PageBanner
         title="Contactez"
-        subtitle="Nous sommes là pour répondre à vos questions et vous accompagner dans votre parcours"
+        subtitle="Nous sommes là pour répondre à vos questions et vous accompagner dans votre parcours professionnel"
         highlight="nous"
         tag="Restons connectés"
       />
