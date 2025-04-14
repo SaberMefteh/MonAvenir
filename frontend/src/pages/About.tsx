@@ -43,9 +43,9 @@ const About = () => {
     <div className="min-h-screen bg-gray-50">
       <PageBanner
         title="À propos de"
-        subtitle="Découvrez notre mission et notre engagements  envers votre réussite académique"
+        subtitle="Découvrez notre mission et notre engagements envers votre réussite académique"
         highlight="MonAvenir.tn"
-        tag="Notre histoire"
+        tag="Nos histoire"
       />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 -mt-8 relative z-10">
