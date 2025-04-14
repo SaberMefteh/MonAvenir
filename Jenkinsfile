@@ -51,7 +51,7 @@ pipeline {
  
 
 
-/*
+
 stage('SonarQube Analysis') {
     steps {
         echo "Running SonarQube analysis..."
@@ -71,7 +71,7 @@ stage('SonarQube Analysis') {
         echo "SonarQube analysis is completed!"
     }
 }
-*/
+
 
         
 
