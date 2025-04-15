@@ -1,0 +1,40 @@
+---
+- name: Deploy to Azure App Service using Azure CLI commands
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    azure_username: "saber.mefteh@isima.u-monastir.tn"  # Replace with your Azure login
+    azure_password: "{{ lookup('env','AZURE_PASSWORD') }}"  # Securely pass your Azure password via an env variable or Jenkins credentials
+    resource_group: "PFE"
+    registry_url: "7b7c-2c0f-4280-3000-522e-256f-b368-6cce-931c.ngrok-free.app"
+    registry_user: "admin"
+    registry_password: "{{ lookup('env','NEXUS_PASSWORD') }}"  # Ensure this is secured as well
+    # Define your webapps and corresponding container image names
+    webapps:
+      - name: "monAvenir"   # Backend App Service name
+        container_image: "7b7c-2c0f-4280-3000-522e-256f-b368-6cce-931c.ngrok-free.app/monavenir/backend:93"
+      - name: "monavenirFront"   
+        container_image: "7b7c-2c0f-4280-3000-522e-256f-b368-6cce-931c.ngrok-free.app/monavenir/frontend:93"
+
+  tasks:
+    - name: Log in to Azure using CLI
+      shell: |
+        az login --username "{{ azure_username }}" --password "{{ azure_password }}"
+      register: azure_login
+      changed_when: false
+      # Note: This method passes credentials in the command line, which is not recommended for production.
+      # Consider alternatives such as interactive login or a secure credentials store if possible.
+
+    - name: Configure each Azure App Service container
+      shell: |
+        az webapp config container set \
+          --name {{ item.name }} \
+          --resource-group {{ resource_group }} \
+          --container-image-name {{ item.container_image }} \
+          --container-registry-url {{ registry_url }} \
+          --container-registry-user {{ registry_user }} \
+          --container-registry-password {{ registry_password }}
+      loop: "{{ webapps }}"
+      register: container_config
+      # You can add additional checks here if needed, for example, verifying that the command completed successfully.
