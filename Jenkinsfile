@@ -161,16 +161,7 @@ pipeline {
                                 --container-registry-password ${NEXUS_PASSWORD}
                         """
         
-                        // Deploy Frontend
-                        sh """
-                            az webapp config container set \
-                                --name $FRONTEND_APP_NAME \
-                                --resource-group $RESOURCE_GROUP \
-                                --container-image-name $DOCKER_REGISTRY/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} \
-                                --container-registry-url ${DOCKER_REGISTRY} \
-                                --container-registry-user ${NEXUS_USERNAME} \
-                                --container-registry-password ${NEXUS_PASSWORD}
-                        """
+                        
                     }
                 }
             }
